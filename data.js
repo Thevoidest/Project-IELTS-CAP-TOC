@@ -1,23 +1,7 @@
 const VOCAB_DATA = {
   cambridge: {
     13: {
-      1: {
-        "authorise":     { meaning: "cho phép, cấp quyền",    type: "verb",      antonym: "forbid",      collocation: "authorise a payment",       example: "She was not authorised to enter the building." },
-        "stimulus":      { meaning: "kích thích, tác nhân",   type: "noun",      antonym: "deterrent",   collocation: "provide a stimulus for",    example: "Boredom can act as a stimulus for creativity." },
-        "innate":        { meaning: "bẩm sinh, vốn có",       type: "adjective", antonym: "acquired",    collocation: "innate ability",            example: "Children have an innate curiosity about the world." },
-        "deliberate":    { meaning: "có chủ ý, cố tình",      type: "adjective", antonym: "accidental",  collocation: "a deliberate attempt",      example: "It was a deliberate effort to mislead the public." },
-        "incorporate":   { meaning: "tích hợp, đưa vào",      type: "verb",      antonym: "exclude",     collocation: "incorporate into a design", example: "The new model incorporates several safety features." },
-        "perception":    { meaning: "nhận thức, cảm nhận",    type: "noun",      antonym: "ignorance",   collocation: "public perception",         example: "Public perception of the issue has shifted dramatically." },
-        "substantial":   { meaning: "đáng kể, lớn",           type: "adjective", antonym: "negligible",  collocation: "substantial evidence",      example: "There was a substantial increase in sales last quarter." },
-        "replicate":     { meaning: "sao chép, lặp lại",      type: "verb",      antonym: "originate",   collocation: "replicate an experiment",   example: "Other scientists failed to replicate the findings." },
-        "phenomenon":    { meaning: "hiện tượng",              type: "noun",                              collocation: "a rare phenomenon",         example: "Climate change is a truly global phenomenon." },
-        "contemporary":  { meaning: "đương đại, hiện đại",    type: "adjective", antonym: "ancient",     collocation: "contemporary art",          example: "Contemporary art often challenges traditional values." },
-        "controversial": { meaning: "gây tranh cãi",           type: "adjective", antonym: "agreed",      collocation: "a controversial decision",  example: "The policy proved deeply controversial." },
-        "mechanism":     { meaning: "cơ chế, cách thức",      type: "noun",                              collocation: "a mechanism for change",    example: "We need a better mechanism for handling complaints." },
-        "cognitive":     { meaning: "thuộc về nhận thức",     type: "adjective",                         collocation: "cognitive skills",          example: "Cognitive development is crucial in early childhood." },
-        "abundance":     { meaning: "sự dồi dào, phong phú",  type: "noun",      antonym: "scarcity",    collocation: "in abundance",              example: "Wildlife exists here in abundance." },
-        "attribute":     { meaning: "quy cho, gắn cho",       type: "verb",                              collocation: "attribute success to",      example: "She attributed her success to hard work." },
-      },
+      1: {},
       2: {},
       3: {},
       4: {},
@@ -93,4 +77,3 @@ const VOCAB_DATA = {
     2:{}, 3:{}, 4:{}, 5:{}, 6:{}
   }
 };
-

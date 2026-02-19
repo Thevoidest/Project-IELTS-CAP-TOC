@@ -649,6 +649,81 @@ document.getElementById('retryMissedBtn').onclick = () => {
 };
 
 // ════════════════════════════════════════════
-// INIT
+// URL ROUTING
 // ════════════════════════════════════════════
-renderHome();
+// URL format:
+//   #home                    → home screen
+//   #cambridge/13/1          → Cambridge 13 Test 1
+//   #road/1                  → Road to IELTS Test 1
+//   #due                     → Review due words
+
+function parseHash() {
+  const hash = location.hash.replace('#', '').trim();
+  if (!hash || hash === 'home') return { type: 'home' };
+  const parts = hash.split('/');
+  if (parts[0] === 'due') return { type: 'due' };
+  if (parts[0] === 'cambridge' && parts[1] && parts[2]) {
+    return { type: 'cambridge', vol: parseInt(parts[1]), test: parseInt(parts[2]) };
+  }
+  if (parts[0] === 'road' && parts[1]) {
+    return { type: 'road', test: parseInt(parts[1]) };
+  }
+  return { type: 'home' };
+}
+
+function navigateTo(hash) {
+  history.pushState(null, '', '#' + hash);
+  routeFromHash();
+}
+
+function routeFromHash() {
+  const route = parseHash();
+  if (route.type === 'home') {
+    renderHome(); showScreen('home'); return;
+  }
+  if (route.type === 'due') {
+    startDueSession(); return;
+  }
+  if (route.type === 'cambridge') {
+    const testData = ((VOCAB_DATA.cambridge[route.vol] || {})[route.test]) || {};
+    if (Object.keys(testData).length === 0) { renderHome(); showScreen('home'); return; }
+    startSession('cambridge', `c${route.vol}t${route.test}`, testData, `Cambridge ${route.vol} · Test ${route.test}`);
+    return;
+  }
+  if (route.type === 'road') {
+    const testData = (VOCAB_DATA.road[route.test]) || {};
+    if (Object.keys(testData).length === 0) { renderHome(); showScreen('home'); return; }
+    startSession('road', `road${route.test}`, testData, `Road to IELTS · Test ${route.test}`);
+    return;
+  }
+  renderHome(); showScreen('home');
+}
+
+// Patch startSession and renderHome to update URL
+const _origStartSession = startSession;
+window.startSession = function(bookKey, sessionId, rawData, title, overrideWords) {
+  // Update hash based on sessionId
+  if (sessionId && sessionId !== 'due_session') {
+    const cambMatch = sessionId.match(/^c(\d+)t(\d+)$/);
+    const roadMatch = sessionId.match(/^road(\d+)$/);
+    if (cambMatch) history.pushState(null, '', `#cambridge/${cambMatch[1]}/${cambMatch[2]}`);
+    else if (roadMatch) history.pushState(null, '', `#road/${roadMatch[1]}`);
+    else history.pushState(null, '', '#session');
+  } else if (sessionId === 'due_session') {
+    history.pushState(null, '', '#due');
+  }
+  _origStartSession(bookKey, sessionId, rawData, title, overrideWords);
+};
+
+// Back to home → update URL
+document.getElementById('backBtn').addEventListener('click', () => {
+  history.pushState(null, '', '#home');
+}, true);
+document.getElementById('toHomeBtn').addEventListener('click', () => {
+  history.pushState(null, '', '#home');
+}, true);
+
+window.addEventListener('popstate', routeFromHash);
+
+// Boot
+routeFromHash();
