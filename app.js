@@ -97,6 +97,7 @@ if (window.speechSynthesis) {
 let S = {
   bookKey: 'cambridge',
   sessionId: null,
+  sessionMode: 'post',  // 'pre' | 'post'
   words: [],          // [{word, ...data}]
   queue: [],          // indices into words[]
   queuePos: 0,
@@ -152,6 +153,17 @@ function renderHome() {
   const dueCount = globalDue();
   document.getElementById('heroTotal').textContent = Object.keys(loadSRS()).length;
   document.getElementById('heroDue').textContent   = dueCount;
+
+  // Due banner (top of screen)
+  const dueBanner = document.getElementById('dueBanner');
+  const dueBannerCount = document.getElementById('dueBannerCount');
+  if (dueCount > 0) {
+    dueBanner.style.display = 'flex';
+    dueBannerCount.textContent = dueCount;
+  } else {
+    dueBanner.style.display = 'none';
+  }
+
   const reviewBtn = document.getElementById('reviewDueBtn');
   const reviewCount = document.getElementById('reviewDueCount');
   if (dueCount > 0) {
@@ -208,7 +220,21 @@ function renderHome() {
   });
 }
 
-function appendTestRow(list, testData, title, sub, icon, onClick) {
+function getNextReviewForWords(words) {
+  // Returns the earliest upcoming nextReview timestamp for a set of words (not due yet)
+  const db = loadSRS();
+  const now = Date.now();
+  let earliest = null;
+  for (const w of words) {
+    const rec = db[w];
+    if (rec && rec.nextReview > now) {
+      if (!earliest || rec.nextReview < earliest) earliest = rec.nextReview;
+    }
+  }
+  return earliest;
+}
+
+function appendTestRow(list, testData, title, sub, icon, onStart) {
   const words = Object.keys(testData);
   const count = words.length;
   const isEmpty = count === 0;
@@ -219,10 +245,19 @@ function appendTestRow(list, testData, title, sub, icon, onClick) {
   row.className = 'test-row' + (isEmpty ? ' placeholder' : '');
 
   let badge = '';
+  let nextReviewLine = '';
   if (!isEmpty) {
-    if (due > 0)       badge = `<div class="srs-badge srs-due">${due} due</div>`;
-    else if (hasStudied) badge = `<div class="srs-badge srs-ok">✓ done</div>`;
-    else                badge = `<div class="srs-badge srs-new">new</div>`;
+    if (due > 0) {
+      badge = `<div class="srs-badge srs-due">${due} due</div>`;
+    } else if (hasStudied) {
+      badge = `<div class="srs-badge srs-ok">✓ done</div>`;
+      const nextTs = getNextReviewForWords(words);
+      if (nextTs) {
+        nextReviewLine = `<div class="srs-next-review">next: ${formatRelTime(nextTs)}</div>`;
+      }
+    } else {
+      badge = `<div class="srs-badge srs-new">new</div>`;
+    }
   }
 
   row.innerHTML = `
@@ -235,9 +270,10 @@ function appendTestRow(list, testData, title, sub, icon, onClick) {
       <div class="word-count">${isEmpty ? '—' : count}</div>
       <div class="word-count-label">${isEmpty ? 'soon' : 'words'}</div>
       ${badge}
+      ${nextReviewLine}
     </div>
   `;
-  if (!isEmpty) row.onclick = onClick;
+  if (!isEmpty) row.onclick = () => openModeModal(title, onStart);
   list.appendChild(row);
 }
 
@@ -274,6 +310,38 @@ function startDueSession() {
 }
 
 
+// ════════════════════════════════════════════
+// MODE MODAL — pre/post session picker
+// ════════════════════════════════════════════
+let _pendingStart = null; // callback to call after mode chosen
+
+function openModeModal(title, onStart) {
+  _pendingStart = onStart;
+  document.getElementById('modeModalTitle').textContent = title;
+  const overlay = document.getElementById('modeOverlay');
+  overlay.style.display = 'flex';
+
+  document.getElementById('modePreBtn').onclick = () => {
+    closeModeModal();
+    S.sessionMode = 'pre';
+    _pendingStart();
+  };
+  document.getElementById('modePostBtn').onclick = () => {
+    closeModeModal();
+    S.sessionMode = 'post';
+    _pendingStart();
+  };
+}
+
+function closeModeModal() {
+  document.getElementById('modeOverlay').style.display = 'none';
+}
+
+// Close on overlay click (outside modal)
+document.getElementById('modeOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModeModal();
+});
+
 function startSession(bookKey, sessionId, rawData, title, overrideWords) {
   clearTimeout(S.advanceTimer);
   if (sessionId !== 'due_session') S.definitionOnly = false;
@@ -286,9 +354,13 @@ function startSession(bookKey, sessionId, rawData, title, overrideWords) {
   const learnedIdx= words.map((_,i)=>i).filter(i => getWordStatus(words[i].word) === 'ok');
   const queue = [...shuffle(dueIdx), ...shuffle(newIdx), ...shuffle(learnedIdx)];
 
+  // Preserve sessionMode if set before this call; reset only for due sessions
+  const mode = sessionId === 'due_session' ? 'post' : (S.sessionMode || 'post');
+
   S = {
     ...S,
     bookKey, sessionId,
+    sessionMode: mode,
     words,
     queue,
     queuePos: 0,
@@ -301,6 +373,18 @@ function startSession(bookKey, sessionId, rawData, title, overrideWords) {
 
   document.getElementById('sessionTitle').textContent = title;
   document.getElementById('retryBanner').classList.toggle('show', S.isRetry);
+
+  // Show mode indicator in session bar
+  const existingBadge = document.getElementById('modeBadge');
+  if (existingBadge) existingBadge.remove();
+  if (sessionId !== 'due_session') {
+    const badge = document.createElement('span');
+    badge.id = 'modeBadge';
+    badge.className = `mode-indicator mode-indicator-${S.sessionMode}`;
+    badge.textContent = S.sessionMode === 'pre' ? 'Pre' : 'Post';
+    document.querySelector('.session-bar').appendChild(badge);
+  }
+
   updateProgress();
   showScreen('session');
   renderQuiz();
@@ -523,21 +607,35 @@ const QTypes = {
 };
 
 // ── pickQuestion ─────────────────────────────
-// Weighted pool: viToEn x2 (highest production value)
-// definitionOnly mode for due sessions = flashcard only
+// Pre mode  (học trước): exposure-first — flashcard 2x, fillIn 2x, connotation 2x; viToEn 1x; collocation/antonym 0x
+// Post mode (ôn sau):   production-first — viToEn 2x, collocation 2x, antonym 2x; flashcard 1x, fillIn 1x, connotation 1x
+// definitionOnly (due session) = flashcard only
 function pickQuestion(word, allWords) {
   if (S.definitionOnly) return QTypes.flashcard(word);
 
   const pool = [];
   const add = (q, weight=1) => { if (q) for (let i=0; i<weight; i++) pool.push(q); };
 
-  add(QTypes.flashcard(word),          1);
-  add(QTypes.viToEn(word, allWords),   2);
-  add(QTypes.antonym(word, allWords),  1);
-  add(QTypes.collocation(word),        1);
-  add(QTypes.fillIn(word, allWords),   1);
-  add(QTypes.connotation(word),        1);
-  if (word.forms) add(QTypes.wordForm(word, allWords), 1);
+  const isPre = S.sessionMode === 'pre';
+
+  if (isPre) {
+    // Pre: exposure — understand, recognise, absorb
+    add(QTypes.flashcard(word),          2);  // self-rated recall, low pressure
+    add(QTypes.fillIn(word, allWords),   2);  // word in context
+    add(QTypes.connotation(word),        2);  // understand register
+    add(QTypes.viToEn(word, allWords),   1);  // some production
+    // collocation & antonym: too hard before knowing the word; skip
+    if (word.forms) add(QTypes.wordForm(word, allWords), 1);
+  } else {
+    // Post: production — use, differentiate, retain
+    add(QTypes.viToEn(word, allWords),   2);  // forced recall
+    add(QTypes.collocation(word),        2);  // correct usage
+    add(QTypes.antonym(word, allWords),  2);  // semantic contrast
+    add(QTypes.flashcard(word),          1);  // still useful
+    add(QTypes.fillIn(word, allWords),   1);
+    add(QTypes.connotation(word),        1);
+    if (word.forms) add(QTypes.wordForm(word, allWords), 1);
+  }
 
   if (pool.length === 0) return QTypes.flashcard(word);
   return pool[Math.floor(Math.random() * pool.length)];

@@ -8,8 +8,38 @@
 </head>
 <body>
 
+<!-- ════════════════ MODE MODAL ════════════════ -->
+<div id="modeOverlay" class="mode-overlay" style="display:none">
+  <div class="mode-modal">
+    <div class="mode-modal-title" id="modeModalTitle">Road to IELTS · Test 1</div>
+    <div class="mode-modal-sub">Chọn mục đích học:</div>
+    <button class="mode-btn mode-btn-pre" id="modePreBtn">
+      <span class="mode-btn-icon">📖</span>
+      <div class="mode-btn-text">
+        <strong>Học trước khi làm bài</strong>
+        <span>Làm quen với từ mới · Exposure</span>
+      </div>
+    </button>
+    <button class="mode-btn mode-btn-post" id="modePostBtn">
+      <span class="mode-btn-icon">🔁</span>
+      <div class="mode-btn-text">
+        <strong>Ôn sau khi làm bài</strong>
+        <span>Củng cố từ khó · Production</span>
+      </div>
+    </button>
+    <button class="mode-cancel-btn" onclick="closeModeModal()">Huỷ</button>
+  </div>
+</div>
+
 <!-- ════════════════ HOME ════════════════ -->
 <div id="home" class="screen active">
+
+  <!-- Due banner -->
+  <div class="due-banner" id="dueBanner" style="display:none">
+    <span class="due-banner-text">🔔 <span id="dueBannerCount">0</span> từ đến hạn hôm nay</span>
+    <button class="due-banner-btn" onclick="startDueSession()">Ôn ngay →</button>
+  </div>
+
   <div class="home-nav">
     <div class="logo-mark">Blitz<span>.</span></div>
     <div class="guest-pill" id="guestPill">guest</div>
