@@ -94,12 +94,35 @@ if (window.speechSynthesis) {
 // ════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// AUDIO SETTINGS
+// ════════════════════════════════════════════
+const MUTE_KEY = 'blitz_mute';
+function isMuted() { return localStorage.getItem(MUTE_KEY) === '1'; }
+function setMute(val) {
+  localStorage.setItem(MUTE_KEY, val ? '1' : '0');
+  updateMuteUI();
+}
+function updateMuteUI() {
+  const muted = isMuted();
+  document.querySelectorAll('.mute-toggle').forEach(btn => {
+    btn.textContent = muted ? '🔇' : '🔊';
+    btn.title = muted ? 'Bật âm thanh' : 'Tắt âm thanh';
+    btn.classList.toggle('muted', muted);
+  });
+}
+
+// Wrap speakWordUK to respect mute
+const _origSpeak = speakWordUK;
+function speakWordUK(word) { if (!isMuted()) _origSpeak(word); }
+
 let S = {
   bookKey: 'cambridge',
   sessionId: null,
   sessionMode: 'post',  // 'pre' | 'post'
-  words: [],          // [{word, ...data}]
-  queue: [],          // indices into words[]
+  sectionFilter: 'all', // 'all' | 'reading' | 'listening'
+  words: [],
+  queue: [],
   queuePos: 0,
   correct: 0,
   wrong: 0,
@@ -273,7 +296,7 @@ function appendTestRow(list, testData, title, sub, icon, onStart) {
       ${nextReviewLine}
     </div>
   `;
-  if (!isEmpty) row.onclick = () => openModeModal(title, onStart);
+  if (!isEmpty) row.onclick = () => openModeModal(title, onStart, testData);
   list.appendChild(row);
 }
 
@@ -311,15 +334,38 @@ function startDueSession() {
 
 
 // ════════════════════════════════════════════
-// MODE MODAL — pre/post session picker
+// MODE MODAL — pre/post + section filter
 // ════════════════════════════════════════════
-let _pendingStart = null; // callback to call after mode chosen
+let _pendingStart = null;
+let _pendingRawData = null; // raw testData to inspect sections
 
-function openModeModal(title, onStart) {
+function openModeModal(title, onStart, rawData) {
   _pendingStart = onStart;
+  _pendingRawData = rawData;
   document.getElementById('modeModalTitle').textContent = title;
-  const overlay = document.getElementById('modeOverlay');
-  overlay.style.display = 'flex';
+
+  // Detect if this test has section data
+  const words = rawData ? Object.values(rawData) : [];
+  const hasSections = words.some(w => w.section === 'reading' || w.section === 'listening');
+  const readCount = words.filter(w => w.section === 'reading').length;
+  const listenCount = words.filter(w => w.section === 'listening').length;
+
+  const sectionRow = document.getElementById('sectionFilterRow');
+  if (hasSections) {
+    sectionRow.style.display = 'flex';
+    // Reset to 'all' each open
+    S.sectionFilter = 'all';
+    document.querySelectorAll('.section-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.section === 'all');
+    });
+    document.getElementById('sectionTabRead').textContent  = `📖 Reading (${readCount})`;
+    document.getElementById('sectionTabListen').textContent = `🎧 Listening (${listenCount})`;
+  } else {
+    sectionRow.style.display = 'none';
+    S.sectionFilter = 'all';
+  }
+
+  document.getElementById('modeOverlay').style.display = 'flex';
 
   document.getElementById('modePreBtn').onclick = () => {
     closeModeModal();
@@ -337,16 +383,30 @@ function closeModeModal() {
   document.getElementById('modeOverlay').style.display = 'none';
 }
 
-// Close on overlay click (outside modal)
+// Section tab clicks
 document.getElementById('modeOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeModeModal();
+  if (e.target === this) { closeModeModal(); return; }
+  const tab = e.target.closest('.section-tab');
+  if (tab) {
+    S.sectionFilter = tab.dataset.section;
+    document.querySelectorAll('.section-tab').forEach(b =>
+      b.classList.toggle('active', b.dataset.section === S.sectionFilter)
+    );
+  }
 });
 
 function startSession(bookKey, sessionId, rawData, title, overrideWords) {
   clearTimeout(S.advanceTimer);
   if (sessionId !== 'due_session') S.definitionOnly = false;
 
-  const words = overrideWords || Object.entries(rawData).map(([word, d]) => ({ word, ...d }));
+  let words = overrideWords || Object.entries(rawData).map(([word, d]) => ({ word, ...d }));
+
+  // Apply section filter (only when not retry/due session)
+  const filter = S.sectionFilter || 'all';
+  if (!overrideWords && sessionId !== 'due_session' && filter !== 'all') {
+    words = words.filter(w => w.section === filter);
+    if (words.length === 0) words = overrideWords || Object.entries(rawData).map(([word, d]) => ({ word, ...d }));
+  }
 
   // Sort queue: due words first, then new, then already learned
   const dueIdx    = words.map((_,i)=>i).filter(i => getWordStatus(words[i].word) === 'due');
@@ -354,13 +414,13 @@ function startSession(bookKey, sessionId, rawData, title, overrideWords) {
   const learnedIdx= words.map((_,i)=>i).filter(i => getWordStatus(words[i].word) === 'ok');
   const queue = [...shuffle(dueIdx), ...shuffle(newIdx), ...shuffle(learnedIdx)];
 
-  // Preserve sessionMode if set before this call; reset only for due sessions
   const mode = sessionId === 'due_session' ? 'post' : (S.sessionMode || 'post');
 
   S = {
     ...S,
     bookKey, sessionId,
     sessionMode: mode,
+    sectionFilter: filter,
     words,
     queue,
     queuePos: 0,
@@ -371,19 +431,43 @@ function startSession(bookKey, sessionId, rawData, title, overrideWords) {
     advanceTimer: null,
   };
 
-  document.getElementById('sessionTitle').textContent = title;
+  // Build title suffix for section
+  let titleDisplay = title;
+  if (filter === 'reading')   titleDisplay += ' · Reading';
+  if (filter === 'listening') titleDisplay += ' · Listening';
+
+  document.getElementById('sessionTitle').textContent = titleDisplay;
   document.getElementById('retryBanner').classList.toggle('show', S.isRetry);
 
-  // Show mode indicator in session bar
-  const existingBadge = document.getElementById('modeBadge');
-  if (existingBadge) existingBadge.remove();
+  // Mode + section badges in session bar
+  document.querySelectorAll('#modeBadge,#sectionBadge').forEach(el => el.remove());
   if (sessionId !== 'due_session') {
-    const badge = document.createElement('span');
-    badge.id = 'modeBadge';
-    badge.className = `mode-indicator mode-indicator-${S.sessionMode}`;
-    badge.textContent = S.sessionMode === 'pre' ? 'Pre' : 'Post';
-    document.querySelector('.session-bar').appendChild(badge);
+    const bar = document.querySelector('.session-bar');
+    const modeBadge = document.createElement('span');
+    modeBadge.id = 'modeBadge';
+    modeBadge.className = `mode-indicator mode-indicator-${S.sessionMode}`;
+    modeBadge.textContent = S.sessionMode === 'pre' ? 'Pre' : 'Post';
+    bar.appendChild(modeBadge);
+
+    if (filter !== 'all') {
+      const secBadge = document.createElement('span');
+      secBadge.id = 'sectionBadge';
+      secBadge.className = `mode-indicator mode-indicator-section-${filter}`;
+      secBadge.textContent = filter === 'reading' ? '📖' : '🎧';
+      bar.appendChild(secBadge);
+    }
   }
+
+  // Mute toggle in session bar
+  let muteBtn = document.getElementById('sessionMuteBtn');
+  if (!muteBtn) {
+    muteBtn = document.createElement('button');
+    muteBtn.id = 'sessionMuteBtn';
+    muteBtn.className = 'mute-toggle session-mute-btn';
+    muteBtn.onclick = () => setMute(!isMuted());
+    document.querySelector('.session-bar').appendChild(muteBtn);
+  }
+  updateMuteUI();
 
   updateProgress();
   showScreen('session');
@@ -692,12 +776,14 @@ function renderQuiz() {
 }
 
 function revealFlashcard() {
+  const idx = S.queue[S.queuePos];
+  const word = S.words[idx];
   document.getElementById('fcReveal').style.display = 'block';
   document.getElementById('fcActions').innerHTML = `
     <button class="fc-know-btn" onclick="rateFlashcard(true)">✓ Biết rồi</button>
     <button class="fc-forget-btn" onclick="rateFlashcard(false)">✗ Chưa nhớ</button>
   `;
-  // Space/Enter = "Biết rồi" after reveal
+  speakWordUK(word.word);
   S._fcRevealed = true;
 }
 
@@ -725,6 +811,7 @@ function handleAnswer(btn, correctAnswer, wordStr, wordMeaning, qType) {
   if (isCorrect) {
     btn.classList.add('correct');
     playCorrect();
+    speakWordUK(wordStr);
     S.correct++;
     updateSRSWord(wordStr, true);
   } else {
@@ -971,3 +1058,4 @@ window.addEventListener('popstate', routeFromHash);
 
 // Boot
 routeFromHash();
+updateMuteUI();

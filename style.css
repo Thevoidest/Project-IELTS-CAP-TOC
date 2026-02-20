@@ -395,8 +395,72 @@ body {
 }
 .mode-cancel-btn:hover { color: var(--text); }
 
-/* ── Session mode indicator ──────────────────── */
-.mode-indicator {
+/* ── Section filter row (inside modal) ────── */
+.section-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.section-tab {
+  flex: 1;
+  padding: 9px 8px;
+  background: var(--card2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.section-tab.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: white;
+}
+.section-tab:hover:not(.active) {
+  border-color: var(--text2);
+  color: var(--text);
+}
+
+/* ── Section badge in session bar ─────────── */
+.mode-indicator-section-reading  { background: #e3f2fd; color: #1565c0; }
+.mode-indicator-section-listening { background: #f3e5f5; color: #6a1b9a; }
+
+/* ── Mute toggle button ───────────────────── */
+.mute-toggle {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.mute-toggle:hover { border-color: var(--text2); }
+.mute-toggle.muted { background: #fff0ed; border-color: var(--accent); }
+
+.session-mute-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  background: transparent;
+  border-color: transparent;
+}
+.session-mute-btn:hover { background: var(--card2); border-color: var(--border); }
+
+.home-mute-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;

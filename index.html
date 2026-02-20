@@ -13,6 +13,14 @@
   <div class="mode-modal">
     <div class="mode-modal-title" id="modeModalTitle">Road to IELTS · Test 1</div>
     <div class="mode-modal-sub">Chọn mục đích học:</div>
+
+    <!-- Section filter (only shown when test has section data) -->
+    <div class="section-filter-row" id="sectionFilterRow" style="display:none">
+      <button class="section-tab active" data-section="all">Tất cả</button>
+      <button class="section-tab" data-section="reading" id="sectionTabRead">📖 Reading</button>
+      <button class="section-tab" data-section="listening" id="sectionTabListen">🎧 Listening</button>
+    </div>
+
     <button class="mode-btn mode-btn-pre" id="modePreBtn">
       <span class="mode-btn-icon">📖</span>
       <div class="mode-btn-text">
@@ -42,7 +50,10 @@
 
   <div class="home-nav">
     <div class="logo-mark">Blitz<span>.</span></div>
-    <div class="guest-pill" id="guestPill">guest</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="mute-toggle home-mute-btn" onclick="setMute(!isMuted())" title="Tắt/bật âm thanh">🔊</button>
+      <div class="guest-pill" id="guestPill">guest</div>
+    </div>
   </div>
 
   <div class="home-hero">
