@@ -74,7 +74,7 @@ body {
   padding: 20px 20px 0;
 }
 .hero-card {
-  background: linear-gradient(135deg, #a67c00 0%, #d4af37 35%, #c9a84c 60%, #a67c00 85%, #8b6914 100%);
+  background: linear-gradient(130deg, #a67c00 0%, #d4af37 30%, #c9a84c 55%, #a67c00 80%, #8b6914 100%);
   border-radius: var(--radius);
   padding: 28px 24px;
   color: white;
@@ -85,11 +85,9 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 25% 40%, rgba(255,255,255,.18) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 25%, rgba(255,255,255,.1) 0%, transparent 40%),
-    radial-gradient(ellipse at 55% 80%, rgba(80,50,0,.1) 0%, transparent 45%);
-  pointer-events: none;
+  filter: url(#marble-thick);
+  opacity: .6;
+  mix-blend-mode: overlay;
 }
 .hero-card::after {
   content: 'IELTS';
@@ -224,11 +222,9 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(255,255,255,.2) 0%, transparent 50%),
-    radial-gradient(ellipse at 75% 25%, rgba(255,255,255,.12) 0%, transparent 40%),
-    radial-gradient(ellipse at 55% 80%, rgba(80,50,0,.08) 0%, transparent 45%);
-  pointer-events: none;
+  filter: url(#marble-thick);
+  opacity: .6;
+  mix-blend-mode: overlay;
 }
 .vol-header:hover { filter: brightness(1.04); }
 .vol-title {
