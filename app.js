@@ -1253,21 +1253,29 @@ function renderBrowseList() {
       ? `<span class="browse-section-badge ${w.section}">${w.section === 'reading' ? 'R' : 'L'}</span>`
       : '';
 
+    // Bold target word in example
+    let exampleHtml = '';
+    if (w.example) {
+      const escaped = w.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const bolded = w.example.replace(new RegExp(`(${escaped})`, 'gi'), '<strong>$1</strong>');
+      exampleHtml = `<div class="browse-example">"${bolded}"</div>`;
+    }
+
     return `
       <div class="browse-card">
         <div class="browse-card-top">
           <span class="browse-word">${w.word}</span>
+          ${w.ipa ? `<span class="browse-ipa">${formatIpaWithStress(w.ipa, w.stressed)}</span>` : ''}
           <span class="browse-type ${typeClass}">${w.type || ''}</span>
           <button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button>
           ${sectionBadge}
         </div>
-        ${w.ipa ? `<div class="browse-ipa">${formatIpaWithStress(w.ipa, w.stressed)}</div>` : ''}
         <div class="browse-meaning">${w.meaning || ''}</div>
         <div class="browse-meta">
           ${w.collocation ? `<div><span class="browse-meta-label">Collocation:</span> ${w.collocation}</div>` : ''}
           ${w.antonym ? `<div><span class="browse-meta-label">Antonym:</span> ${w.antonym}</div>` : ''}
         </div>
-        ${w.example ? `<div class="browse-example">"${w.example}"</div>` : ''}
+        ${exampleHtml}
       </div>
     `;
   }).join('');
