@@ -85,9 +85,12 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  filter: url(#marble-thick);
-  opacity: .25;
-  mix-blend-mode: overlay;
+  background:
+    radial-gradient(ellipse at 15% 35%, rgba(255,255,255,.22) 0%, transparent 45%),
+    radial-gradient(ellipse at 70% 20%, rgba(255,255,255,.15) 0%, transparent 35%),
+    radial-gradient(ellipse at 45% 75%, rgba(80,50,0,.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 65%, rgba(255,255,255,.1) 0%, transparent 30%);
+  pointer-events: none;
 }
 .hero-card::after {
   content: 'IELTS';
@@ -226,9 +229,11 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  filter: url(#marble-thick);
-  opacity: .2;
-  mix-blend-mode: overlay;
+  background:
+    radial-gradient(ellipse at 20% 40%, rgba(255,255,255,.2) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 25%, rgba(255,255,255,.12) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 80%, rgba(80,50,0,.08) 0%, transparent 40%);
+  pointer-events: none;
 }
 .vol-header:hover { filter: brightness(1.04); }
 .vol-title {
@@ -439,9 +444,11 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  filter: url(#marble-thick);
-  opacity: .2;
-  mix-blend-mode: overlay;
+  background:
+    radial-gradient(ellipse at 20% 40%, rgba(255,255,255,.2) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 25%, rgba(255,255,255,.12) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 80%, rgba(80,50,0,.08) 0%, transparent 40%);
+  pointer-events: none;
 }
 .mode-modal-title {
   font-family: 'DM Serif Display', serif;
