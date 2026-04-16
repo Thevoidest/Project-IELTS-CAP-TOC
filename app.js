@@ -318,32 +318,56 @@ function renderHome() {
   document.getElementById('sectionHd').textContent = meta.label + ' — Select a test';
 
   const sourceData = VOCAB_DATA[S.bookKey];
+  const ICON_COLORS = ['icon-c1', 'icon-c2', 'icon-c3', 'icon-c4'];
 
   meta.volumes.forEach(vol => {
-    const volData = S.bookKey === 'cambridge'
-      ? sourceData[vol]
-      : { 1: sourceData[vol] };
-
-    const testCount = S.bookKey === 'cambridge' ? 4 : 1;
-
     if (S.bookKey === 'cambridge') {
-      for (let t = 1; t <= testCount; t++) {
-        const testData = (volData || {})[t] || {};
+      const volData = sourceData[vol] || {};
+      // Count total words in this volume
+      let totalWords = 0;
+      for (let t = 1; t <= 4; t++) totalWords += Object.keys((volData[t] || {})).length;
+
+      // Create accordion group
+      const group = document.createElement('div');
+      group.className = 'vol-group';
+      // Auto-open if volume has any populated tests
+      if (totalWords > 0) group.classList.add('open');
+
+      const header = document.createElement('div');
+      header.className = 'vol-header';
+      header.innerHTML = `
+        <span class="vol-title">Cambridge ${vol}</span>
+        <span class="vol-count">${totalWords > 0 ? totalWords + ' words' : 'coming soon'}</span>
+        <span class="vol-chevron">▼</span>
+      `;
+      header.onclick = () => group.classList.toggle('open');
+      group.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'vol-body';
+
+      for (let t = 1; t <= 4; t++) {
+        const testData = volData[t] || {};
         const sessionId = `c${vol}t${t}`;
-        appendTestRow(list, sessionId, testData,
-          `Cambridge ${vol}`,
+        const colorClass = ICON_COLORS[(t - 1) % 4];
+        appendTestRow(body, sessionId, testData,
           `Test ${t}`,
-          `📖`,
+          null,
+          colorClass,
           () => startSession(S.bookKey, sessionId, testData, `Cambridge ${vol} · Test ${t}`)
         );
       }
+
+      group.appendChild(body);
+      list.appendChild(group);
     } else {
       const testData = sourceData[vol] || {};
       const sessionId = `road${vol}`;
+      const colorClass = ICON_COLORS[(vol - 1) % 4];
       appendTestRow(list, sessionId, testData,
-        `Road to IELTS`,
-        `Test ${vol}`,
-        `📝`,
+        `Road to IELTS · Test ${vol}`,
+        null,
+        colorClass,
         () => startSession(S.bookKey, sessionId, testData, `Road to IELTS · Test ${vol}`)
       );
     }
@@ -364,15 +388,28 @@ function getNextReviewForWords(sessionId, words) {
   return earliest;
 }
 
-function appendTestRow(list, sessionId, testData, title, sub, icon, onStart) {
+function appendTestRow(list, sessionId, testData, title, sub, colorClass, onStart) {
   const words = Object.keys(testData);
   const count = words.length;
   const isEmpty = count === 0;
   const due = isEmpty ? 0 : countDue(sessionId, words);
   const hasStudied = !isEmpty && words.some(w => getWordStatus(sessionId, w) !== 'new');
 
+  // Count L + R
+  const vals = Object.values(testData);
+  const lCount = vals.filter(v => v.section === 'listening').length;
+  const rCount = vals.filter(v => v.section === 'reading').length;
+  const metaText = isEmpty ? 'Coming soon'
+    : sub ? sub
+    : (lCount && rCount) ? `${lCount}L + ${rCount}R`
+    : `${count} words`;
+
   const row = document.createElement('div');
   row.className = 'test-row' + (isEmpty ? ' placeholder' : '');
+
+  // Extract test number from sessionId for icon label
+  const tMatch = sessionId.match(/t(\d+)$/);
+  const iconLabel = tMatch ? `T${tMatch[1]}` : title.slice(0, 2);
 
   let badge = '';
   let nextReviewLine = '';
@@ -380,7 +417,7 @@ function appendTestRow(list, sessionId, testData, title, sub, icon, onStart) {
     if (due > 0) {
       badge = `<div class="srs-badge srs-due">${due} due</div>`;
     } else if (hasStudied) {
-      badge = `<div class="srs-badge srs-ok">✓ done</div>`;
+      badge = `<div class="srs-badge srs-ok">done</div>`;
       const nextTs = getNextReviewForWords(sessionId, words);
       if (nextTs) {
         nextReviewLine = `<div class="srs-next-review">next: ${formatRelTime(nextTs)}</div>`;
@@ -391,10 +428,10 @@ function appendTestRow(list, sessionId, testData, title, sub, icon, onStart) {
   }
 
   row.innerHTML = `
-    <div class="test-row-icon">${isEmpty ? '🔒' : icon}</div>
+    <div class="test-row-icon ${isEmpty ? '' : colorClass}">${isEmpty ? '🔒' : iconLabel}</div>
     <div class="test-row-info">
       <div class="test-row-title">${title}</div>
-      <div class="test-row-meta">${sub}</div>
+      <div class="test-row-meta">${metaText}</div>
     </div>
     <div class="test-row-right">
       <div class="word-count">${isEmpty ? '—' : count}</div>

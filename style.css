@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Lora:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Lora:wght@700&family=Libre+Baskerville:wght@400;700&display=swap');
 
 :root {
   --bg: #f5f4f0;
@@ -177,55 +177,112 @@ body {
   margin-bottom: 12px;
 }
 
+/* ── Accordion volume groups ── */
 .test-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
-.test-row {
+.vol-group {
+  border: 2px solid var(--border);
+  border-radius: 16px;
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
-  transition: all .18s;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
+.vol-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background .15s;
+  user-select: none;
+}
+.vol-header:hover { background: var(--card2); }
+.vol-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #a67c00;
+  letter-spacing: -0.3px;
+  flex: 1;
+}
+.vol-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text2);
+}
+.vol-chevron {
+  font-size: 14px;
+  color: var(--text3);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  flex-shrink: 0;
+}
+.vol-group.open .vol-chevron { transform: rotate(180deg); }
+.vol-body {
+  display: none;
+  padding: 0 12px 12px;
+}
+.vol-group.open .vol-body { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Test row cards (inside accordion) ── */
+.test-row {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all .15s;
+}
 .test-row:hover {
-  border-color: var(--accent);
+  border-color: #a67c00;
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
+/* Glass placeholder for empty tests */
 .test-row.placeholder {
-  opacity: .45;
   cursor: default;
   pointer-events: none;
+  background: rgba(255,255,255,.45);
+  border-color: rgba(232,229,222,.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
+.test-row.placeholder * { opacity: .55; }
+
+/* Icon badge — 4 brand colours rotating */
 .test-row-icon {
-  width: 42px; height: 42px;
-  border-radius: 10px;
-  background: var(--accent-light);
+  width: 48px; height: 48px;
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
+  font-weight: 900;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #fff;
   flex-shrink: 0;
 }
-.test-row.placeholder .test-row-icon {
-  background: var(--card2);
-}
+.icon-c1 { background: #1a6be8; }
+.icon-c2 { background: #e8341a; }
+.icon-c3 { background: #16a34a; }
+.icon-c4 { background: #7c3aed; }
+.test-row.placeholder .test-row-icon { opacity: .35; }
+
 .test-row-info { flex: 1; }
 .test-row-title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--text);
   line-height: 1.2;
 }
 .test-row-meta {
-  font-size: 12px;
-  color: var(--text3);
-  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 600;
+  margin-top: 3px;
 }
 .test-row-right {
   display: flex;
@@ -234,31 +291,31 @@ body {
   gap: 4px;
 }
 .word-count {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
   color: var(--text);
   line-height: 1;
 }
 .word-count-label {
-  font-size: 10px;
-  color: var(--text3);
-  font-weight: 500;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 700;
 }
 .srs-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
   border-radius: 99px;
-  letter-spacing: .5px;
+  letter-spacing: .3px;
 }
 .srs-due { background: #fff3cd; color: #92400e; }
 .srs-ok  { background: var(--green-light); color: var(--green); }
 .srs-new { background: var(--accent2-light); color: var(--accent2); }
 
 .srs-next-review {
-  font-size: 10px;
-  color: var(--text3);
-  font-weight: 500;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 600;
   text-align: right;
   margin-top: 2px;
 }
