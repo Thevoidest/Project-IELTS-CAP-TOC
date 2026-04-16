@@ -26,38 +26,42 @@
 <!-- ════════════════ MODE MODAL ════════════════ -->
 <div id="modeOverlay" class="mode-overlay" style="display:none">
   <div class="mode-modal">
-    <div class="mode-modal-title" id="modeModalTitle">Road to IELTS · Test 1</div>
-    <div class="mode-modal-sub">Chọn mục đích học:</div>
-
-    <!-- Section filter (only shown when test has section data) -->
-    <div class="section-filter-row" id="sectionFilterRow" style="display:none">
-      <button class="section-tab active" data-section="all">Tất cả</button>
-      <button class="section-tab" data-section="reading" id="sectionTabRead">📖 Reading</button>
-      <button class="section-tab" data-section="listening" id="sectionTabListen">🎧 Listening</button>
+    <div class="mode-modal-header">
+      <div class="mode-modal-title" id="modeModalTitle">Road to IELTS · Test 1</div>
+      <div class="mode-modal-sub">Chọn mục đích học:</div>
     </div>
 
-    <button class="mode-btn mode-btn-browse" id="modeBrowseBtn">
-      <span class="mode-btn-icon">👁</span>
-      <div class="mode-btn-text">
-        <strong>Xem từ vựng</strong>
-        <span>Đọc lướt toàn bộ từ · No quiz</span>
+    <div class="mode-modal-body">
+      <!-- Section filter (only shown when test has section data) -->
+      <div class="section-filter-row" id="sectionFilterRow" style="display:none">
+        <button class="section-tab active" data-section="all">Tất cả</button>
+        <button class="section-tab" data-section="reading" id="sectionTabRead">📖 Reading</button>
+        <button class="section-tab" data-section="listening" id="sectionTabListen">🎧 Listening</button>
       </div>
-    </button>
-    <button class="mode-btn mode-btn-pre" id="modePreBtn">
-      <span class="mode-btn-icon">📖</span>
-      <div class="mode-btn-text">
-        <strong>Học trước khi làm bài</strong>
-        <span>Làm quen với từ mới · Exposure</span>
-      </div>
-    </button>
-    <button class="mode-btn mode-btn-post" id="modePostBtn">
-      <span class="mode-btn-icon">🔁</span>
-      <div class="mode-btn-text">
-        <strong>Ôn sau khi làm bài</strong>
-        <span>Củng cố từ khó · Production</span>
-      </div>
-    </button>
-    <button class="mode-cancel-btn" onclick="closeModeModal()">Huỷ</button>
+
+      <button class="mode-btn mode-btn-browse" id="modeBrowseBtn">
+        <span class="mode-btn-icon">👁</span>
+        <div class="mode-btn-text">
+          <strong>Xem từ vựng</strong>
+          <span>Đọc lướt toàn bộ từ · No quiz</span>
+        </div>
+      </button>
+      <button class="mode-btn mode-btn-pre" id="modePreBtn">
+        <span class="mode-btn-icon">📖</span>
+        <div class="mode-btn-text">
+          <strong>Học trước khi làm bài</strong>
+          <span>Làm quen với từ mới · Exposure</span>
+        </div>
+      </button>
+      <button class="mode-btn mode-btn-post" id="modePostBtn">
+        <span class="mode-btn-icon">🔁</span>
+        <div class="mode-btn-text">
+          <strong>Ôn sau khi làm bài</strong>
+          <span>Củng cố từ khó · Production</span>
+        </div>
+      </button>
+      <button class="mode-cancel-btn" onclick="closeModeModal()">Huỷ</button>
+    </div>
   </div>
 </div>
 
