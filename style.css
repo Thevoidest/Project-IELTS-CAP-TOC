@@ -198,8 +198,14 @@ body {
   cursor: pointer;
   transition: background .15s;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255,255,255,.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-.vol-header:hover { background: var(--card2); }
+.vol-header:hover { background: rgba(250,250,248,.95); }
 .vol-title {
   font-family: 'Libre Baskerville', serif;
   font-size: 17px;
@@ -243,16 +249,29 @@ body {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
-/* Glass placeholder for empty tests */
+/* iOS-style locked tests — glass overlay, logo blurred, "soon" crisp */
 .test-row.placeholder {
   cursor: default;
   pointer-events: none;
-  background: rgba(255,255,255,.45);
-  border-color: rgba(232,229,222,.5);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  position: relative;
+  background: rgba(255,255,255,.55);
+  border-color: rgba(232,229,222,.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
-.test-row.placeholder * { opacity: .55; }
+.test-row.placeholder .test-row-icon {
+  filter: blur(4px) saturate(.3);
+  opacity: .5;
+}
+.test-row.placeholder .test-row-info { opacity: .3; }
+.test-row.placeholder .test-row-right .word-count { display: none; }
+.test-row.placeholder .test-row-right .word-count-label {
+  opacity: 1;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text2);
+  letter-spacing: .5px;
+}
 
 /* Icon badge — 4 brand colours rotating */
 .test-row-icon {
@@ -320,15 +339,20 @@ body {
   margin-top: 2px;
 }
 
-/* ── Due Banner ──────────────────────────────── */
+/* ── Due Banner (iOS notification bar) ──────── */
 .due-banner {
-  background: #1a1916;
+  background: rgba(26,25,22,.85);
+  backdrop-filter: blur(12px) saturate(1.8);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
   color: white;
   padding: 11px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
 }
 .due-banner-text {
   font-size: 13px;
@@ -349,16 +373,17 @@ body {
 }
 .due-banner-btn:hover { opacity: .85; }
 
-/* ── Mode Modal ──────────────────────────────── */
+/* ── Mode Modal (iOS sheet style) ──────────────── */
 .mode-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.45);
+  background: rgba(0,0,0,.35);
   z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   animation: fadeIn .18s ease;
 }
 @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
@@ -576,11 +601,18 @@ body {
   background: var(--bg);
 }
 
+/* iOS-style sticky glass nav */
 .session-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 16px 20px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(245,244,240,.75);
+  backdrop-filter: blur(12px) saturate(1.8);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
 }
 .back-btn {
   width: 38px; height: 38px;
@@ -1148,6 +1180,13 @@ body {
   display: flex;
   gap: 8px;
   padding: 0 20px 12px;
+  position: sticky;
+  top: 58px;
+  z-index: 40;
+  background: rgba(245,244,240,.75);
+  backdrop-filter: blur(12px) saturate(1.8);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
+  padding-top: 8px;
 }
 
 .browse-list {
