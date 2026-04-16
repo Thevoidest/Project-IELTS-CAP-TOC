@@ -21,6 +21,13 @@
       <button class="section-tab" data-section="listening" id="sectionTabListen">🎧 Listening</button>
     </div>
 
+    <button class="mode-btn mode-btn-browse" id="modeBrowseBtn">
+      <span class="mode-btn-icon">👁</span>
+      <div class="mode-btn-text">
+        <strong>Xem từ vựng</strong>
+        <span>Đọc lướt toàn bộ từ · No quiz</span>
+      </div>
+    </button>
     <button class="mode-btn mode-btn-pre" id="modePreBtn">
       <span class="mode-btn-icon">📖</span>
       <div class="mode-btn-text">
@@ -135,6 +142,21 @@
       <button class="btn btn-outline" id="toHomeBtn">← All tests</button>
     </div>
   </div>
+</div>
+
+<!-- ════════════════ BROWSE ════════════════ -->
+<div id="browse" class="screen">
+  <div class="session-bar">
+    <button class="back-btn" id="browseBackBtn">←</button>
+    <div class="session-title-text" id="browseTitle">—</div>
+    <div class="browse-count" id="browseCount">0 words</div>
+  </div>
+  <div class="browse-filter-row" id="browseFilterRow">
+    <button class="section-tab active" data-bsection="all" onclick="filterBrowse('all',this)">Tất cả</button>
+    <button class="section-tab" data-bsection="reading" onclick="filterBrowse('reading',this)">Reading</button>
+    <button class="section-tab" data-bsection="listening" onclick="filterBrowse('listening',this)">Listening</button>
+  </div>
+  <div class="browse-list" id="browseList"><!-- dynamic --></div>
 </div>
 
 <script src="data.js"></script>

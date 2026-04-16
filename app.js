@@ -476,6 +476,10 @@ function openModeModal(title, onStart, rawData) {
 
   document.getElementById('modeOverlay').style.display = 'flex';
 
+  document.getElementById('modeBrowseBtn').onclick = () => {
+    closeModeModal();
+    startBrowse(_pendingRawData, document.getElementById('modeModalTitle').textContent);
+  };
   document.getElementById('modePreBtn').onclick = () => {
     closeModeModal();
     S.sessionMode = 'pre';
@@ -1187,6 +1191,132 @@ document.getElementById('toHomeBtn').addEventListener('click', () => {
 }, true);
 
 window.addEventListener('popstate', routeFromHash);
+
+// ════════════════════════════════════════════
+// BROWSE MODE — scrollable card list
+// ════════════════════════════════════════════
+let _browseWords = [];
+let _browseTitle = '';
+let _browseFilter = 'all';
+
+function startBrowse(rawData, title) {
+  _browseWords = Object.entries(rawData).map(([word, d]) => ({ word, ...d }));
+  _browseTitle = title;
+  _browseFilter = S.sectionFilter || 'all';
+  document.getElementById('browseTitle').textContent = title;
+
+  // Apply section filter
+  const filterRow = document.getElementById('browseFilterRow');
+  const hasSections = _browseWords.some(w => w.section === 'reading' || w.section === 'listening');
+  filterRow.style.display = hasSections ? 'flex' : 'none';
+
+  // Reset filter tabs
+  document.querySelectorAll('#browseFilterRow .section-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.bsection === _browseFilter);
+  });
+
+  renderBrowseList();
+  showScreen('browse');
+  history.pushState(null, '', '#browse');
+}
+
+function filterBrowse(section, btn) {
+  _browseFilter = section;
+  document.querySelectorAll('#browseFilterRow .section-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBrowseList();
+}
+
+function renderBrowseList() {
+  let words = _browseWords;
+  if (_browseFilter !== 'all') {
+    words = words.filter(w => w.section === _browseFilter);
+  }
+
+  document.getElementById('browseCount').textContent = words.length + ' words';
+
+  const list = document.getElementById('browseList');
+  list.innerHTML = words.map(w => {
+    const ipaHtml = w.ipa
+      ? `<div class="browse-ipa">${formatIpaWithStress(w.ipa, w.stressed)} <button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button></div>`
+      : `<div class="browse-ipa"><button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button></div>`;
+
+    const sectionBadge = w.section
+      ? `<span class="browse-section-badge ${w.section}">${w.section === 'reading' ? 'R' : 'L'}</span>`
+      : '';
+
+    return `
+      <div class="browse-card">
+        <div class="browse-card-top">
+          <span class="browse-word">${w.word}</span>
+          <span class="browse-type">${w.type || ''}</span>
+          ${sectionBadge}
+        </div>
+        ${ipaHtml}
+        <div class="browse-meaning">${w.meaning || ''}</div>
+        <div class="browse-meta">
+          ${w.collocation ? `<div><span class="browse-meta-label">Collocation:</span> ${w.collocation}</div>` : ''}
+          ${w.antonym ? `<div><span class="browse-meta-label">Antonym:</span> ${w.antonym}</div>` : ''}
+          ${w.connotation ? `<div><span class="browse-meta-label">Tone:</span> ${w.connotation}</div>` : ''}
+        </div>
+        ${w.example ? `<div class="browse-example">"${w.example}"</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function formatIpaWithStress(ipa, stressed) {
+  if (!stressed || !ipa) return ipa || '';
+  // Bold the stressed syllable in the IPA string
+  const escaped = stressed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return ipa.replace(new RegExp(escaped, 'i'), `<span class="stress-mark">${stressed}</span>`);
+}
+
+// Browse back button
+document.getElementById('browseBackBtn').onclick = () => {
+  renderHome();
+  showScreen('home');
+  history.pushState(null, '', '#home');
+};
+
+// ════════════════════════════════════════════
+// IPA IN FLASHCARD — inject into flashcard render
+// ════════════════════════════════════════════
+// Patch the flashcard rendering in renderQuiz to include IPA
+const _origRenderQuiz = renderQuiz;
+window._origRenderQuiz = _origRenderQuiz;
+
+// We override the flashcard HTML generation inside renderQuiz by patching QTypes.flashcard
+const _origFlashcard = QTypes.flashcard;
+QTypes.flashcard = function(word) {
+  const q = _origFlashcard(word);
+  q._ipa = word.ipa || null;
+  q._stressed = word.stressed || null;
+  return q;
+};
+
+// Patch renderQuiz to inject IPA into flashcard HTML
+const _patchedRenderQuiz = renderQuiz;
+// Instead of complex patching, we override the flashcard HTML generation in renderQuiz
+// by modifying the card innerHTML after render
+const _observer = new MutationObserver(() => {
+  const fcWord = document.querySelector('.flashcard-word');
+  if (!fcWord || fcWord.dataset.ipaInjected) return;
+  fcWord.dataset.ipaInjected = '1';
+
+  // Get current word data
+  if (S.queuePos < S.queue.length) {
+    const idx = S.queue[S.queuePos];
+    const word = S.words[idx];
+    if (word && word.ipa) {
+      const ipaEl = document.createElement('div');
+      ipaEl.className = 'flashcard-ipa';
+      ipaEl.innerHTML = formatIpaWithStress(word.ipa, word.stressed);
+      fcWord.parentNode.insertBefore(ipaEl, fcWord.nextSibling);
+    }
+  }
+});
+_observer.observe(document.getElementById('quizCard'), { childList: true, subtree: true });
 
 // Boot
 migrateSRSv1(); // one-time migration: plain keys → sessionId::word scoped keys
