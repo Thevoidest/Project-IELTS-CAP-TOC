@@ -86,7 +86,7 @@ body {
   position: absolute;
   inset: 0;
   filter: url(#marble-thick);
-  opacity: .6;
+  opacity: .25;
   mix-blend-mode: overlay;
 }
 .hero-card::after {
@@ -95,31 +95,35 @@ body {
   bottom: -12px; right: -8px;
   font-family: 'Fraunces', serif;
   font-size: 80px;
-  color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.15);
   pointer-events: none;
   line-height: 1;
+  z-index: 1;
 }
+/* Hero text needs z-index above marble */
+.hero-title, .hero-big, .hero-sub, .hero-stats { position: relative; z-index: 2; }
 .hero-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: rgba(255,255,255,.85);
+  color: #fff;
   margin-bottom: 6px;
-  text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 .hero-big {
   font-family: 'DM Serif Display', serif;
   font-size: 36px;
   line-height: 1.1;
-  text-shadow: 0 1px 3px rgba(0,0,0,.25);
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,.4);
 }
 .hero-sub {
-  font-size: 13px;
-  color: rgba(255,255,255,.8);
+  font-size: 14px;
+  color: #fff;
   margin-top: 10px;
-  font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0,0,0,.2);
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0,0,0,.35);
 }
 .hero-stats {
   display: flex;
@@ -223,17 +227,18 @@ body {
   position: absolute;
   inset: 0;
   filter: url(#marble-thick);
-  opacity: .6;
+  opacity: .2;
   mix-blend-mode: overlay;
 }
 .vol-header:hover { filter: brightness(1.04); }
 .vol-title {
   font-family: 'DM Serif Display', serif;
   font-size: 22px;
-  color: #3d2800;
+  color: #2a1a00;
   flex: 1;
   position: relative;
   z-index: 1;
+  text-shadow: 0 1px 0 rgba(255,255,255,.25);
 }
 .vol-count {
   font-size: 12px;
