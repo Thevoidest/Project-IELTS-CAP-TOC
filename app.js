@@ -1227,6 +1227,17 @@ function filterBrowse(section, btn) {
   renderBrowseList();
 }
 
+function getTypeClass(type) {
+  if (!type) return 'browse-type-default';
+  const t = type.toLowerCase();
+  if (t === 'noun' || t === 'noun phrase') return 'browse-type-noun';
+  if (t === 'verb' || t === 'phrasal verb') return 'browse-type-verb';
+  if (t === 'adjective') return 'browse-type-adjective';
+  if (t === 'adverb') return 'browse-type-adverb';
+  if (t === 'phrase') return 'browse-type-phrase';
+  return 'browse-type-default';
+}
+
 function renderBrowseList() {
   let words = _browseWords;
   if (_browseFilter !== 'all') {
@@ -1237,10 +1248,7 @@ function renderBrowseList() {
 
   const list = document.getElementById('browseList');
   list.innerHTML = words.map(w => {
-    const ipaHtml = w.ipa
-      ? `<div class="browse-ipa">${formatIpaWithStress(w.ipa, w.stressed)} <button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button></div>`
-      : `<div class="browse-ipa"><button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button></div>`;
-
+    const typeClass = getTypeClass(w.type);
     const sectionBadge = w.section
       ? `<span class="browse-section-badge ${w.section}">${w.section === 'reading' ? 'R' : 'L'}</span>`
       : '';
@@ -1249,15 +1257,15 @@ function renderBrowseList() {
       <div class="browse-card">
         <div class="browse-card-top">
           <span class="browse-word">${w.word}</span>
-          <span class="browse-type">${w.type || ''}</span>
+          <span class="browse-type ${typeClass}">${w.type || ''}</span>
+          <button class="browse-speak-btn" onclick="event.stopPropagation();speakWord('${escAttr(w.word)}')">🔊</button>
           ${sectionBadge}
         </div>
-        ${ipaHtml}
+        ${w.ipa ? `<div class="browse-ipa">${formatIpaWithStress(w.ipa, w.stressed)}</div>` : ''}
         <div class="browse-meaning">${w.meaning || ''}</div>
         <div class="browse-meta">
           ${w.collocation ? `<div><span class="browse-meta-label">Collocation:</span> ${w.collocation}</div>` : ''}
           ${w.antonym ? `<div><span class="browse-meta-label">Antonym:</span> ${w.antonym}</div>` : ''}
-          ${w.connotation ? `<div><span class="browse-meta-label">Tone:</span> ${w.connotation}</div>` : ''}
         </div>
         ${w.example ? `<div class="browse-example">"${w.example}"</div>` : ''}
       </div>

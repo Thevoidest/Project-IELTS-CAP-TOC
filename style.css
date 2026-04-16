@@ -1106,33 +1106,60 @@ body {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 16px 18px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-sm);
   transition: border-color .15s;
 }
 .browse-card:hover { border-color: var(--accent); }
 
+/* Row 1: word + type badge + speaker + section badge */
 .browse-card-top {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 .browse-word {
   font-family: 'Fraunces', serif;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 .browse-type {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-weight: 800;
+  letter-spacing: .8px;
   text-transform: uppercase;
-  color: var(--text3);
+  padding: 3px 8px;
+  border-radius: 6px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
+/* Type colours */
+.browse-type-noun      { background: #e3f2fd; color: #1565c0; }
+.browse-type-verb      { background: #e8f5e9; color: #2e7d32; }
+.browse-type-adjective { background: #fff3e0; color: #e65100; }
+.browse-type-adverb    { background: #fce4ec; color: #880e4f; }
+.browse-type-phrase    { background: #f3e5f5; color: #6a1b9a; }
+.browse-type-default   { background: var(--card2); color: var(--text3); }
+
+.browse-speak-btn {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.browse-speak-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+
 .browse-section-badge {
   font-size: 9px;
   font-weight: 700;
@@ -1146,23 +1173,28 @@ body {
 .browse-section-badge.reading  { background: #e3f2fd; color: #1565c0; }
 .browse-section-badge.listening { background: #f3e5f5; color: #6a1b9a; }
 
+/* Row 2: IPA */
 .browse-ipa {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text3);
-  font-family: monospace;
-  margin-bottom: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  margin-bottom: 8px;
   letter-spacing: .3px;
 }
 .browse-ipa .stress-mark {
   color: var(--accent);
   font-weight: 700;
 }
+
+/* Row 3: meaning */
 .browse-meaning {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--accent);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
+
+/* Row 4: meta (collocation, antonym — NO tone) */
 .browse-meta {
   display: flex;
   flex-direction: column;
@@ -1177,29 +1209,17 @@ body {
   text-transform: uppercase;
   letter-spacing: .5px;
 }
+
+/* Row 5: example */
 .browse-example {
   font-style: italic;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text2);
-  margin-top: 6px;
+  margin-top: 8px;
   padding-left: 10px;
   border-left: 2px solid var(--border2);
 }
-.browse-speak-btn {
-  background: none;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  flex-shrink: 0;
-  transition: all .15s;
-}
-.browse-speak-btn:hover { border-color: var(--accent); background: var(--accent-light); }
 
 /* Browse mode button hover */
 .mode-btn-browse:hover { border-color: #7c3aed; background: #f3e5f5; }
