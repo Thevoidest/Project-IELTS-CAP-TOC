@@ -1,21 +1,56 @@
 // ════════════════════════════════════════════
-// SRS — SM-2 simplified
+// SRS — SM-2 simplified (aligned with main site)
 // ════════════════════════════════════════════
-const SRS_KEY = 'blitz_srs_v2'; // v2: keys are scoped as "sessionId::word"
+// KEY FORMAT: "sessionId::word" (scoped per test, e.g. "c15t1::proliferate")
+// Main site uses global keys ("word"). Merge utility: vocabSaveFlatten()
+// EASE BOUNDS: [1.3, 3.0] — aligned with main site
+// NEXTREVIEW: stored as ISO 8601 string; internal computation uses ms
+// ════════════════════════════════════════════
+const SRS_KEY = 'blitz_srs_v2';
+
+// ── Cache: load JSON once per render cycle, not per word ──
+let _srsCache = null;
+let _srsCacheDirty = true;
 
 function loadSRS() {
-  try { return JSON.parse(localStorage.getItem(SRS_KEY)) || {}; } catch { return {}; }
+  if (!_srsCacheDirty && _srsCache !== null) return _srsCache;
+  try { _srsCache = JSON.parse(localStorage.getItem(SRS_KEY)) || {}; }
+  catch { _srsCache = {}; }
+  _srsCacheDirty = false;
+  return _srsCache;
 }
 function saveSRS(data) {
   try { localStorage.setItem(SRS_KEY, JSON.stringify(data)); } catch {}
+  _srsCache = data;
+  _srsCacheDirty = false;
+}
+function invalidateSRSCache() { _srsCacheDirty = true; _srsCache = null; }
+
+// ── Sanitize: clamp & validate record fields (defense against corruption) ──
+function sanitizeSRSRecord(rec) {
+  const now = Date.now();
+  // Accept both ISO string and ms timestamp for nextReview
+  let nr = rec.nextReview;
+  if (typeof nr === 'string') nr = new Date(nr).getTime();
+  if (!Number.isFinite(nr) || nr <= 0) nr = now;
+  return {
+    interval: (Number.isFinite(rec.interval) && rec.interval >= 1) ? rec.interval : 1,
+    ease:     (Number.isFinite(rec.ease) && rec.ease >= 1.3 && rec.ease <= 3.0) ? rec.ease : 2.5,
+    reps:     (Number.isInteger(rec.reps) && rec.reps >= 0) ? rec.reps : 0,
+    nextReview: nr,
+  };
 }
 
-// Migrate v1 (plain word keys) → v2 (sessionId::word keys)
+// ── Storage format: nextReview as ISO string ──
+function toStorageFormat(rec) {
+  return { ...rec, nextReview: new Date(rec.nextReview).toISOString() };
+}
+
+// ── Migrate v1 (plain word keys) → v2 (sessionId::word keys) ──
 function migrateSRSv1() {
   try {
     const old = JSON.parse(localStorage.getItem('blitz_srs_v1') || '{}');
     if (Object.keys(old).length === 0) return;
-    // Build reverse index: word → [sessionIds]
     const wordToSessions = {};
     Object.entries(VOCAB_DATA.cambridge || {}).forEach(([vol, tests]) => {
       Object.entries(tests).forEach(([t, data]) => {
@@ -34,52 +69,77 @@ function migrateSRSv1() {
         wordToSessions[w].push(sid);
       });
     });
-    // Copy each v1 record to all matching sessions in v2
     const newDb = JSON.parse(localStorage.getItem(SRS_KEY) || '{}');
+    let migratedCount = 0;
     Object.entries(old).forEach(([word, rec]) => {
+      const validated = sanitizeSRSRecord(rec);
       (wordToSessions[word] || []).forEach(sid => {
         const key = `${sid}::${word}`;
-        if (!newDb[key] || rec.reps >= newDb[key].reps) newDb[key] = rec;
+        if (!newDb[key] || validated.reps >= (newDb[key].reps || 0)) {
+          newDb[key] = toStorageFormat(validated);
+          migratedCount++;
+        }
       });
     });
     saveSRS(newDb);
     localStorage.removeItem('blitz_srs_v1');
-    console.log(`SRS migrated: ${Object.keys(old).length} v1 records → v2`);
+    console.log(`SRS migrated: ${Object.keys(old).length} v1 words → ${migratedCount} v2 records`);
   } catch(e) { console.warn('SRS migration failed', e); }
 }
 
 function updateSRSWord(sessionId, word, correct) {
+  invalidateSRSCache(); // force fresh read since we're writing
   const db = loadSRS();
   const now = Date.now();
   const key = `${sessionId}::${word}`;
-  const rec = db[key] || { interval: 1, ease: 2.5, reps: 0, nextReview: now };
+  const rec = sanitizeSRSRecord(db[key] || { interval: 1, ease: 2.5, reps: 0, nextReview: now });
 
   if (correct) {
     rec.reps++;
     if (rec.reps === 1)      rec.interval = 1;
     else if (rec.reps === 2) rec.interval = 6;
     else                     rec.interval = Math.round(rec.interval * rec.ease);
-    rec.ease = Math.max(1.3, rec.ease + 0.1);
+    rec.ease = Math.min(3.0, Math.max(1.3, rec.ease + 0.1));
   } else {
     rec.reps = 0;
     rec.interval = 1;
     rec.ease = Math.max(1.3, rec.ease - 0.2);
   }
   rec.nextReview = now + rec.interval * 86400000;
-  db[key] = rec;
+  db[key] = toStorageFormat(rec);
   saveSRS(db);
 }
 
-function getWordStatus(sessionId, word) {
-  const db = loadSRS();
+function getWordStatus(sessionId, word, db) {
+  if (!db) db = loadSRS();
   const rec = db[`${sessionId}::${word}`];
   if (!rec) return 'new';
-  if (rec.nextReview <= Date.now()) return 'due';
+  // Accept both ms and ISO
+  let nr = rec.nextReview;
+  if (typeof nr === 'string') nr = new Date(nr).getTime();
+  if (!Number.isFinite(nr)) return 'new';
+  if (nr <= Date.now()) return 'due';
   return 'ok';
 }
 
-function countDue(sessionId, words) {
-  return words.filter(w => getWordStatus(sessionId, w) === 'due').length;
+function countDue(sessionId, words, db) {
+  if (!db) db = loadSRS();
+  return words.filter(w => getWordStatus(sessionId, w, db) === 'due').length;
+}
+
+// ── Merge utility: flatten scoped keys → global keys (for main site merge) ──
+function vocabSaveFlatten() {
+  const db = loadSRS();
+  const global = {};
+  Object.entries(db).forEach(([key, rec]) => {
+    const word = key.split('::')[1];
+    if (!word) return;
+    const clean = sanitizeSRSRecord(rec);
+    if (!global[word] || clean.reps > (global[word].reps || 0)) {
+      global[word] = toStorageFormat(clean);
+    }
+  });
+  return global;
 }
 
 // ════════════════════════════════════════════
@@ -228,10 +288,12 @@ function vocabSaveImport() {
         // Merge: imported data wins on conflict (newer device)
         const current = loadSRS();
         const merged  = { ...current };
-        Object.entries(data.srs).forEach(([word, rec]) => {
-          // Keep whichever record has more reps (more studied)
-          if (!merged[word] || rec.reps >= merged[word].reps) {
-            merged[word] = rec;
+        Object.entries(data.srs).forEach(([key, rec]) => {
+          if (typeof key !== 'string' || !key.includes('::')) return;
+          if (!rec || typeof rec !== 'object') return;
+          const clean = sanitizeSRSRecord(rec);
+          if (!merged[key] || clean.reps >= (merged[key].reps || 0)) {
+            merged[key] = toStorageFormat(clean);
           }
         });
         saveSRS(merged);
@@ -270,16 +332,21 @@ function allWords() {
   const db = loadSRS();
   return Object.keys(db);
 }
-function globalDue() {
-  const db = loadSRS();
+function globalDue(db) {
+  if (!db) db = loadSRS();
   const now = Date.now();
-  return Object.values(db).filter(r => r.nextReview <= now).length;
+  return Object.values(db).filter(r => {
+    let nr = r.nextReview;
+    if (typeof nr === 'string') nr = new Date(nr).getTime();
+    return Number.isFinite(nr) && nr <= now;
+  }).length;
 }
 
 function renderHome() {
   document.getElementById('guestPill').textContent = guestId();
-  const dueCount = globalDue();
-  document.getElementById('heroTotal').textContent = Object.keys(loadSRS()).length;
+  const db = loadSRS(); // load once for entire home render
+  const dueCount = globalDue(db);
+  document.getElementById('heroTotal').textContent = Object.keys(db).length;
   document.getElementById('heroDue').textContent   = dueCount;
 
   // Due banner (top of screen)
@@ -354,7 +421,8 @@ function renderHome() {
           `Test ${t}`,
           null,
           colorClass,
-          () => startSession(S.bookKey, sessionId, testData, `Cambridge ${vol} · Test ${t}`)
+          () => startSession(S.bookKey, sessionId, testData, `Cambridge ${vol} · Test ${t}`),
+          db
         );
       }
 
@@ -368,32 +436,36 @@ function renderHome() {
         `Road to IELTS · Test ${vol}`,
         null,
         colorClass,
-        () => startSession(S.bookKey, sessionId, testData, `Road to IELTS · Test ${vol}`)
+        () => startSession(S.bookKey, sessionId, testData, `Road to IELTS · Test ${vol}`),
+        db
       );
     }
   });
 }
 
-function getNextReviewForWords(sessionId, words) {
-  // Returns the earliest upcoming nextReview timestamp for a set of words (not due yet)
-  const db = loadSRS();
+function getNextReviewForWords(sessionId, words, db) {
+  if (!db) db = loadSRS();
   const now = Date.now();
   let earliest = null;
   for (const w of words) {
     const rec = db[`${sessionId}::${w}`];
-    if (rec && rec.nextReview > now) {
-      if (!earliest || rec.nextReview < earliest) earliest = rec.nextReview;
+    if (!rec) continue;
+    let nr = rec.nextReview;
+    if (typeof nr === 'string') nr = new Date(nr).getTime();
+    if (Number.isFinite(nr) && nr > now) {
+      if (!earliest || nr < earliest) earliest = nr;
     }
   }
   return earliest;
 }
 
-function appendTestRow(list, sessionId, testData, title, sub, colorClass, onStart) {
+function appendTestRow(list, sessionId, testData, title, sub, colorClass, onStart, db) {
+  if (!db) db = loadSRS();
   const words = Object.keys(testData);
   const count = words.length;
   const isEmpty = count === 0;
-  const due = isEmpty ? 0 : countDue(sessionId, words);
-  const hasStudied = !isEmpty && words.some(w => getWordStatus(sessionId, w) !== 'new');
+  const due = isEmpty ? 0 : countDue(sessionId, words, db);
+  const hasStudied = !isEmpty && words.some(w => getWordStatus(sessionId, w, db) !== 'new');
 
   // Count L + R
   const vals = Object.values(testData);
@@ -418,7 +490,7 @@ function appendTestRow(list, sessionId, testData, title, sub, colorClass, onStar
       badge = `<div class="srs-badge srs-due">${due} due</div>`;
     } else if (hasStudied) {
       badge = `<div class="srs-badge srs-ok">done</div>`;
-      const nextTs = getNextReviewForWords(sessionId, words);
+      const nextTs = getNextReviewForWords(sessionId, words, db);
       if (nextTs) {
         nextReviewLine = `<div class="srs-next-review">next: ${formatRelTime(nextTs)}</div>`;
       }
@@ -455,8 +527,12 @@ function startDueSession() {
     Object.entries(tests).forEach(([t, words]) => {
       const sid = `c${vol}t${t}`;
       Object.entries(words).forEach(([word, data]) => {
+        if (!data || !data.meaning) return; // skip incomplete entries
         const rec = db[`${sid}::${word}`];
-        if (rec && rec.nextReview <= now) {
+        if (!rec) return;
+        let nr = rec.nextReview;
+        if (typeof nr === 'string') nr = new Date(nr).getTime();
+        if (Number.isFinite(nr) && nr <= now) {
           dueWords.push({ word, _sessionId: sid, ...data });
         }
       });
@@ -466,8 +542,12 @@ function startDueSession() {
   Object.entries(VOCAB_DATA.road).forEach(([vol, words]) => {
     const sid = `road${vol}`;
     Object.entries(words).forEach(([word, data]) => {
+      if (!data || !data.meaning) return;
       const rec = db[`${sid}::${word}`];
-      if (rec && rec.nextReview <= now) {
+      if (!rec) return;
+      let nr = rec.nextReview;
+      if (typeof nr === 'string') nr = new Date(nr).getTime();
+      if (Number.isFinite(nr) && nr <= now) {
         dueWords.push({ word, _sessionId: sid, ...data });
       }
     });
@@ -559,9 +639,10 @@ function startSession(bookKey, sessionId, rawData, title, overrideWords) {
   }
 
   // Sort queue: due words first, then new, then already learned
-  const dueIdx    = words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word) === 'due');
-  const newIdx    = words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word) === 'new');
-  const learnedIdx= words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word) === 'ok');
+  const db = loadSRS();
+  const dueIdx    = words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word, db) === 'due');
+  const newIdx    = words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word, db) === 'new');
+  const learnedIdx= words.map((_,i)=>i).filter(i => getWordStatus(words[i]._sessionId || sessionId, words[i].word, db) === 'ok');
   const queue = [...shuffle(dueIdx), ...shuffle(newIdx), ...shuffle(learnedIdx)];
 
   const mode = sessionId === 'due_session' ? 'post' : (S.sessionMode || 'post');
@@ -977,6 +1058,10 @@ function handleAnswer(btn) {
   const wordMeaning  = container.dataset.meaning;
   const qType        = container.dataset.qtype;
 
+  // Resolve correct sessionId (due sessions have per-word _sessionId)
+  const currentWord = S.words[S.queue[S.queuePos]];
+  const effectiveSessionId = currentWord?._sessionId || S.sessionId;
+
   document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
   const chosen = btn.dataset.val;
   const isCorrect = chosen === correctAnswer;
@@ -986,7 +1071,7 @@ function handleAnswer(btn) {
     playCorrect();
     speakWord(wordStr);
     S.correct++;
-    updateSRSWord(S.sessionId, wordStr, true);
+    updateSRSWord(effectiveSessionId, wordStr, true);
   } else {
     btn.classList.add('wrong');
     document.querySelectorAll('.opt-btn').forEach(b => {
@@ -995,7 +1080,7 @@ function handleAnswer(btn) {
     speakWord(wordStr);
     S.wrong++;
     if (!S.wrongWords.includes(wordStr)) S.wrongWords.push(wordStr);
-    updateSRSWord(S.sessionId, wordStr, false);
+    updateSRSWord(effectiveSessionId, wordStr, false);
     const card = document.getElementById('quizCard');
     card.classList.add('shake');
     setTimeout(() => card.classList.remove('shake'), 350);
@@ -1094,7 +1179,11 @@ function showResults() {
   // SRS next review info
   const db = loadSRS();
   const nextTimes = S.words
-    .map(w => db[`${w._sessionId || S.sessionId}::${w.word}`]?.nextReview)
+    .map(w => {
+      let nr = db[`${w._sessionId || S.sessionId}::${w.word}`]?.nextReview;
+      if (typeof nr === 'string') nr = new Date(nr).getTime();
+      return Number.isFinite(nr) ? nr : null;
+    })
     .filter(Boolean)
     .sort((a,b) => a-b);
   const nextReview = nextTimes[0];
