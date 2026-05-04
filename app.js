@@ -1096,13 +1096,14 @@ function handleAnswer(btn) {
   const needsReinforce = REINFORCE_TYPES.includes(qType);
 
   if (isCorrect) {
-    strip.innerHTML = needsReinforce
+    strip.innerHTML = (needsReinforce
       ? `<span class="strip-icon">✓</span>
          <div class="strip-wrong-info">
            <span class="strip-missed" style="color:var(--green)"><strong>${wordStr}</strong> = ${wordMeaning}</span>
            <span class="strip-correct-answer" style="opacity:.8">${correctAnswer}</span>
          </div>`
-      : `<span class="strip-icon">✓</span><span>Correct!</span>`;
+      : `<span class="strip-icon">✓</span><span>Correct!</span>`)
+      + `<button class="strip-next-btn" onclick="advanceNext()">Tiếp →</button>`;
     card.appendChild(strip);
     clearTimeout(S.advanceTimer);
     S.advanceTimer = setTimeout(() => { S.queuePos++; renderQuiz(); }, 6000);
