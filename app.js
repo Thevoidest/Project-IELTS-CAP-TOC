@@ -1105,7 +1105,7 @@ function handleAnswer(btn) {
       : `<span class="strip-icon">✓</span><span>Correct!</span>`;
     card.appendChild(strip);
     clearTimeout(S.advanceTimer);
-    S.advanceTimer = setTimeout(() => { S.queuePos++; renderQuiz(); }, needsReinforce ? 1800 : 500);
+    S.advanceTimer = setTimeout(() => { S.queuePos++; renderQuiz(); }, 6000);
   } else {
     strip.innerHTML = `
       <span class="strip-icon">✗</span>
